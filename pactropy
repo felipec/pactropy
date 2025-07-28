@@ -1,0 +1,37 @@
+#!/usr/bin/env ruby
+
+require 'yaml'
+
+$essential = []
+
+Dir.glob(File.join(Dir.home, '/.config/pactropy/') + '*.yml').each do |e|
+  data = YAML.load_file(e, symbolize_names: true)
+  $essential += data[:packages] if data[:packages]
+end
+
+class Package
+  attr_reader :name, :as_dependency
+
+  def initialize(info)
+    @name = info[:name]
+    @as_dependency = info[:reason] == '1'
+  end
+end
+
+$packages = {}
+
+Dir.glob('/var/lib/pacman/local/*/desc').each do |e|
+  info = {}
+  File.foreach(e, "\n\n") do |entry|
+    if entry =~ /\A%([A-Z]+)%\n(.+)\n\n\Z/m
+      info[$1.downcase.to_sym] = $2
+    end
+  end
+  pkg = Package.new(info)
+  $packages[pkg.name] = pkg
+end
+
+$packages.each_value do |e|
+  next if e.as_dependency || $essential.include?(e.name)
+  puts e.name
+end
