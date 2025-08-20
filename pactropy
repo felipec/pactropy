@@ -64,8 +64,9 @@ deps = []
 
 $essential.each do |e|
   pkg = $packages[e]
-  if !pkg
-    puts '- %s' % e
+  if !pkg || pkg.as_dependency
+    sign = !pkg ? '-' : '*'
+    puts "#{sign} %s" % e
     next
   end
   deps |= pkg.depends
