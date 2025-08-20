@@ -10,11 +10,12 @@ Dir.glob(File.join(Dir.home, '/.config/pactropy/') + '*.yml').each do |e|
 end
 
 class Package
-  attr_reader :name, :as_dependency
+  attr_reader :name, :as_dependency, :size
 
   def initialize(info)
     @name = info[:name]
     @as_dependency = info[:reason] == '1'
+    @size = info[:size].to_i
   end
 end
 
@@ -31,7 +32,7 @@ Dir.glob('/var/lib/pacman/local/*/desc').each do |e|
   $packages[pkg.name] = pkg
 end
 
-$packages.each_value do |e|
+$packages.values.sort_by(&:size).each do |e|
   next if e.as_dependency || $essential.include?(e.name)
   puts e.name
 end
