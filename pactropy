@@ -3,19 +3,22 @@
 require 'yaml'
 
 $essential = []
+$essential_groups = []
 
 Dir.glob(File.join(Dir.home, '/.config/pactropy/') + '*.yml').each do |e|
   data = YAML.load_file(e, symbolize_names: true)
   $essential += data[:packages] if data[:packages]
+  $essential_groups += data[:groups] if data[:groups]
 end
 
 class Package
-  attr_reader :name, :as_dependency, :size
+  attr_reader :name, :as_dependency, :size, :groups
 
   def initialize(info)
     @name = info[:name]
     @as_dependency = info[:reason] == '1'
     @size = info[:size].to_i
+    @groups = info[:groups]&.split("\n") || []
   end
 end
 
@@ -30,6 +33,11 @@ Dir.glob('/var/lib/pacman/local/*/desc').each do |e|
   end
   pkg = Package.new(info)
   $packages[pkg.name] = pkg
+end
+
+$packages.each_value do |e|
+  next if ($essential_groups & e.groups).empty?
+  $essential << e.name
 end
 
 $packages.values.sort_by(&:size).each do |e|
