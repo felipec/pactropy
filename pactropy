@@ -11,14 +11,34 @@ Dir.glob(File.join(Dir.home, '/.config/pactropy/') + '*.yml').each do |e|
   $essential_groups += data[:groups] if data[:groups]
 end
 
+def parse_dep(v)
+  v =~ /(.+?)(=|>=|>|<)/ ? $1 : v
+end
+
+def traverse(deps)
+  result = []
+  stack = deps.clone
+  visited = {}
+  while e = stack.pop
+    next if visited[e]
+    visited[e] = true
+    dep = $packages[e]
+    next unless dep
+    result << dep.name
+    stack += dep.depends
+  end
+  result
+end
+
 class Package
-  attr_reader :name, :as_dependency, :size, :groups
+  attr_reader :name, :as_dependency, :size, :groups, :depends
 
   def initialize(info)
     @name = info[:name]
     @as_dependency = info[:reason] == '1'
     @size = info[:size].to_i
     @groups = info[:groups]&.split("\n") || []
+    @depends = info[:depends]&.split("\n")&.map(&method(:parse_dep)) || []
   end
 end
 
@@ -39,6 +59,16 @@ $packages.each_value do |e|
   next if ($essential_groups & e.groups).empty?
   $essential << e.name
 end
+
+deps = []
+
+$essential.each do |e|
+  pkg = $packages[e]
+  next unless pkg
+  deps |= pkg.depends
+end
+
+$essential |= traverse(deps)
 
 $packages.values.sort_by(&:size).each do |e|
   next if e.as_dependency || $essential.include?(e.name)
