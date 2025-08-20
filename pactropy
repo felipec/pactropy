@@ -64,7 +64,10 @@ deps = []
 
 $essential.each do |e|
   pkg = $packages[e]
-  next unless pkg
+  if !pkg
+    puts '- %s' % e
+    next
+  end
   deps |= pkg.depends
 end
 
@@ -72,5 +75,5 @@ $essential |= traverse(deps)
 
 $packages.values.sort_by(&:size).each do |e|
   next if e.as_dependency || $essential.include?(e.name)
-  puts e.name
+  puts '+ %s' % e.name
 end
